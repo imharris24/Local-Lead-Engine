@@ -1,0 +1,21 @@
+# Local Lead Engine gitignore
+# See https://github.com/github/gitignore
+
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+.env
+
+data/database/
+data/exports/
+data/logs/
+
+.pytest_cache/
+.pyproject.toml
+.coverage
+
+.vscode/
+.idea/
