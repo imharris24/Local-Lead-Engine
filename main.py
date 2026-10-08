@@ -60,10 +60,13 @@ def run_search(
         # Navigate to search
         search_url = _build_search_url(config)
         logger.info(f"Navigating to search: {search_url}")
-        page.goto(search_url)
+        page.goto(search_url, wait_until="domcontentloaded", timeout=60000)
 
-        # Wait for results to load
-        page.wait_for_load_state("networkidle")
+        # Wait for search results to start loading
+        page.wait_for_selector("div[role='article']", timeout=15000)
+
+        # Give extra time for results to populate
+        page.wait_for_timeout(5000)
 
         # Discover businesses
         discovered = _discover_businesses(page, search_engine, limit)
@@ -101,14 +104,38 @@ def _build_search_url(config: SearchConfig) -> str:
     from urllib.parse import quote_plus
     base = "https://www.google.com/maps/search/"
     query = f"{quote_plus(config.keyword)}+{quote_plus(config.location)}"
-    return f"{base}{query}?gl=country-pk"
+    return f"{base}{query}?gl=country-pk&hl=en"
 
 
 def _discover_businesses(page, search_engine: SearchEngine, limit: int) -> int:
     """Discover businesses from the search page."""
-    # This is a simplified discovery - in production would extract business cards
-    search_engine.discovered = limit
-    return limit
+    try:
+        # Try to find business articles/ cards
+        articles = page.locator("div[role='article']")
+
+        # Count how many are visible
+        count = articles.count()
+
+        if count > 0:
+            search_engine.discovered = min(count, limit)
+            logger.info(f"Found {count} business articles, limiting to {limit}")
+        else:
+            # Fallback: try other selectors
+            articles = page.locator(".Si6A0c")
+            count = articles.count()
+            if count > 0:
+                search_engine.discovered = min(count, limit)
+                logger.info(f"Found {count} results via fallback selector")
+            else:
+                search_engine.discovered = 0
+                logger.warning("No business articles found - page structure may have changed")
+
+    except Exception as e:
+        logger.error(f"Error discovering businesses: {e}")
+        search_engine.discovered = 0
+        search_engine.errors += 1
+
+    return search_engine.discovered
 
 
 def _export_results(search_engine: SearchEngine, config: SearchConfig, repo) -> None:
