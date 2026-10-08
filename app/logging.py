@@ -1,6 +1,9 @@
 import logging
 import sys
 from pathlib import Path
+from typing import Optional
+
+from .config import settings
 
 BASE_DIR = Path(__file__).parent.parent
 DEFAULT_LOG_DIR = BASE_DIR / "data" / "logs"
@@ -38,4 +41,4 @@ def setup_logging(
 
     return logger
 
-logger = setup_logging()
+logger = setup_logging(level=settings.log_level)

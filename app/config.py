@@ -17,6 +17,28 @@ DEFAULT_SETTINGS: Dict[str, Any] = {
 }
 
 
+BOOL_KEYS = {"headless"}
+INT_KEYS = {
+    "default_limit",
+    "retry_attempts",
+    "retry_delay",
+    "retry_backoff",
+}
+
+
+def _coerce(key: str, value: Any) -> Any:
+    """Coerce raw .env / YAML values into proper Python types."""
+    if isinstance(value, str):
+        if key in BOOL_KEYS:
+            return value.strip().lower() in {"1", "true", "yes", "on"}
+        if key in INT_KEYS:
+            try:
+                return int(value.strip())
+            except (TypeError, ValueError):
+                return DEFAULT_SETTINGS.get(key, value)
+    return value
+
+
 class Settings:
     def __init__(self, env_path: Optional[Path] = None, config_path: Optional[Path] = None):
         self._env: Dict[str, str] = {}
@@ -36,6 +58,11 @@ class Settings:
                         continue
                     key, _, value = line.partition("=")
                     self._env[key.strip()] = value.strip()
+        # Real environment variables override values from the .env file
+        for key in DEFAULT_SETTINGS:
+            env_key = key.upper()
+            if env_key in os.environ:
+                self._env[env_key] = os.environ[env_key]
 
     def _load_config(self, config_path: Optional[Path]) -> None:
         if config_path is None:
@@ -46,17 +73,18 @@ class Settings:
                 self._config = yaml.safe_load(f) or {}
 
     def _merge_settings(self) -> None:
-        for key, value in DEFAULT_SETTINGS.items():
+        for key, default in DEFAULT_SETTINGS.items():
             env_key = key.upper()
             if env_key in self._env and self._env[env_key]:
-                setattr(self, key, self._env[env_key])
+                value = self._env[env_key]
             elif key in self._config:
-                setattr(self, key, self._config[key])
+                value = self._config[key]
             else:
-                setattr(self, key, value)
+                value = default
+            setattr(self, key, _coerce(key, value))
 
     def __getattr__(self, name: str) -> Any:
-        return getattr(self, name, None)
+        raise AttributeError(f"Settings has no attribute {name!r}")
 
     def get(self, key: str, default: Any = None) -> Any:
         return getattr(self, key, default)

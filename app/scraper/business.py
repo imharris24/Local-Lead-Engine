@@ -43,7 +43,6 @@ class Business:
         """Convert to database BusinessRecord."""
         from datetime import datetime, timezone
         now = datetime.now(timezone.utc).isoformat()
-        first_seen = self._get_first_seen()
         return BusinessRecord(
             source=self.source,
             source_id=self.source_id,
@@ -58,17 +57,12 @@ class Business:
             longitude=self.longitude,
             maps_url=self.maps_url,
             opening_hours=self.opening_hours,
-            search_keyword="",  # set by search engine
-            search_location="",  # set by search engine
-            first_seen_at=first_seen,
+            search_keyword=self.search_keyword,
+            search_location=self.search_location,
+            first_seen_at=now,
             last_seen_at=now,
             scraped_at=now,
         )
-
-    def _get_first_seen(self) -> str:
-        """Get first_seen_at - use existing if available, otherwise now."""
-        # This will be set when persisting to DB
-        return ""
 
     def is_valid(self) -> bool:
         """Check if business has minimum required fields."""

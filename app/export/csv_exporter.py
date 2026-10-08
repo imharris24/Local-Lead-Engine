@@ -1,4 +1,6 @@
 import csv
+import os
+import re
 from pathlib import Path
 from typing import List, Dict, Any, Optional
 
@@ -29,8 +31,9 @@ class CsvExporter:
         if filename is None:
             import datetime
             timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-            filename = f"{filename}_{timestamp}.csv" if filename else f"leads_{timestamp}.csv"
+            filename = f"leads_{timestamp}.csv"
 
+        filename = self._safe_filename(filename)
         filepath = self.export_path / filename
 
         with open(filepath, "w", newline="", encoding="utf-8") as f:
@@ -48,16 +51,28 @@ class CsvExporter:
 
         return str(filepath)
 
+    @staticmethod
+    def _safe_filename(filename: str) -> str:
+        """Strip path separators and guarantee a .csv extension."""
+        filename = os.path.basename(str(filename).strip()) or "leads.csv"
+        filename = re.sub(r"[^\w.\- ]", "_", filename).strip()
+        if not filename:
+            filename = "leads.csv"
+        if not filename.lower().endswith(".csv"):
+            filename += ".csv"
+        return filename
+
     def export_records(self, records: List[object], filename: str = None) -> str:
         """Export a list of business records to CSV."""
         export_records = []
         for record in records:
-            if hasattr(record, 'to_dict'):
-                export_records.append(record.to_dict())
-            elif isinstance(record, dict):
+            if isinstance(record, dict):
                 export_records.append(record)
+            elif hasattr(record, "to_dict"):
+                export_records.append(record.to_dict())
+            elif hasattr(record, "__dict__"):
+                export_records.append(dict(vars(record)))
             else:
-                # Try to convert to dict
                 export_records.append({})
 
         return self.export(export_records, filename)

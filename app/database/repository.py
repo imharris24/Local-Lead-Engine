@@ -1,7 +1,7 @@
 from typing import List, Optional, Dict, Any
 from datetime import datetime, timezone
 
-from .models import BusinessRecord, BUSINESS_SCHEMA, BUSINESS_INSERT, UPSERT_BUSINESS, SEARCH_INSERT, SEARCH_SELECT_ALL, SEARCH_HISTORY_SCHEMA, BUSINESS_SELECT_BY_ID, BUSINESS_SELECT_BY_SOURCE_ID, BUSINESS_SELECT_BY_NAME_ADDRESS
+from .models import BusinessRecord, BUSINESS_SCHEMA, BUSINESS_INSERT, UPSERT_BUSINESS, SEARCH_INSERT, SEARCH_SELECT_ALL, SEARCH_HISTORY_SCHEMA, BUSINESS_SELECT_BY_ID, BUSINESS_SELECT_BY_SOURCE_ID, BUSINESS_SELECT_BY_NAME_ADDRESS, SEARCH_SELECT_BY_ID
 from ..database.connection import DatabaseConnection
 
 
@@ -39,7 +39,7 @@ class BusinessRepository:
         opening_hours = getattr(record, 'opening_hours', None)
         search_keyword = getattr(record, 'search_keyword', '')
         search_location = getattr(record, 'search_location', '')
-        first_seen_at = getattr(record, 'first_seen_at', now)
+        first_seen_at = getattr(record, 'first_seen_at', None) or now
         last_seen_at = now
         scraped_at = now
 
@@ -84,6 +84,17 @@ class BusinessRepository:
         """Get all business records."""
         conn = self.db.connect()
         cursor = conn.execute("SELECT * FROM businesses")
+        rows = cursor.fetchall()
+        conn.close()
+        return [BusinessRecord(*row) for row in rows]
+
+    def get_by_search(self, keyword: str, location: str) -> List[BusinessRecord]:
+        """Get business records produced by a specific search."""
+        conn = self.db.connect()
+        cursor = conn.execute(
+            "SELECT * FROM businesses WHERE search_keyword = ? AND search_location = ?",
+            (keyword, location),
+        )
         rows = cursor.fetchall()
         conn.close()
         return [BusinessRecord(*row) for row in rows]
@@ -186,8 +197,30 @@ class SearchRepository:
     def __init__(self, db: DatabaseConnection):
         self.db = db
 
-    def insert(self, **kwargs) -> int:
-        return self.db.insert_search(**kwargs)
+    def insert(
+        self,
+        keyword: str,
+        location: str,
+        result_limit: int,
+        discovered_count: int = 0,
+        processed_count: int = 0,
+        failed_count: int = 0,
+        status: str = "pending",
+    ) -> int:
+        """Insert a search-history row and return its ID."""
+        now = datetime.now(timezone.utc).isoformat()
+        conn = self.db.connect()
+        cursor = conn.execute(
+            SEARCH_INSERT,
+            (
+                keyword, location, result_limit, discovered_count,
+                processed_count, failed_count, status, now, None, None,
+            ),
+        )
+        search_id = cursor.lastrowid
+        conn.commit()
+        conn.close()
+        return search_id
 
     def get_all(self) -> List[Dict[str, Any]]:
         conn = self.db.connect()

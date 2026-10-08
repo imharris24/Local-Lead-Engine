@@ -1,5 +1,7 @@
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 import re
+
+from ..database.models import BusinessRecord
 
 
 class Normalizer:
@@ -17,19 +19,24 @@ class Normalizer:
 
     @staticmethod
     def normalize_phone(phone: Optional[str]) -> Optional[str]:
-        """Normalize phone number to consistent format."""
+        """Normalize a Pakistani phone number to E.164 (+923001234567)."""
         if not phone:
             return None
         digits = re.sub(r"\D", "", phone)
-        if len(digits) >= 10:
-            # Format: +923001234567 or 03001234567
-            if digits.startswith("92") or digits.startswith("0092"):
-                # International format
-                return f"+{digits[:3]} {digits[3:7]}-{digits[7:]}" if len(digits) >= 10 else phone
-            elif digits.startswith("0"):
-                # Local Pakistani format
-                if len(digits) >= 11:
-                    return f"{digits[0:3]} {digits[3:7]}-{digits[7:]}"
+        if not digits:
+            return None
+
+        if digits.startswith("0092"):
+            national = digits[4:]
+        elif digits.startswith("92") and len(digits) >= 12:
+            national = digits[2:]
+        elif digits.startswith("0") and len(digits) == 11:
+            national = digits[1:]
+        else:
+            return phone
+
+        if national.isdigit() and len(national) == 10:
+            return f"+92{national}"
         return phone
 
     @staticmethod
