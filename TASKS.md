@@ -454,4 +454,5 @@ actually works.
 ---
 
 *Created from a full code review. All 47 existing tests currently pass, and none of them
-cover the bugs listed in Section 1.*
+cover the bugs listed in Section 1. A desktop GUI and PyInstaller packaging have
+since been added (see Phase 6).*

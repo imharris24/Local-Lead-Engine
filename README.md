@@ -45,7 +45,8 @@ The project should prioritize conservative request rates, transparency, and resp
 * Configurable search queries
 * Configurable locations
 * Configurable result limits
-* Resumable scraping jobs
+* Desktop GUI (customtkinter)
+* Single-file executable (PyInstaller)
 * No cloud infrastructure required
 
 ## Planned Features
@@ -63,8 +64,7 @@ The project should prioritize conservative request rates, transparency, and resp
 * Lead scoring
 * Custom lead filters
 * Export profiles
-* Job history
-* Desktop UI
+* Job history viewer
 * Scheduling
 * Multiple output formats
 
@@ -131,8 +131,8 @@ This makes it possible to resume jobs, deduplicate records, update existing busi
 | Data processing    | Python                |
 | CSV                | Python `csv` / Pandas |
 | Configuration      | `.env` / YAML / JSON  |
+| GUI                | customtkinter         |
 | Testing            | Pytest                |
-| Optional UI        | FastAPI + React       |
 | Packaging          | PyInstaller           |
 
 The initial version should remain intentionally small.
@@ -191,8 +191,13 @@ local-lead-engine/
 │   ├── test_deduplicator.py
 │   └── test_exporter.py
 │
+├── gui/
+│   ├── __init__.py
+│   └── app.py              # Desktop GUI (customtkinter)
+│
 ├── main.py
 ├── requirements.txt
+├── build.spec               # PyInstaller config
 ├── .env.example
 ├── .gitignore
 └── README.md
@@ -217,7 +222,8 @@ The application itself does not require:
 * A VPS
 * A paid API
 
-The initial target is a completely local installation.
+The initial target is a completely local installation. A desktop GUI and a single-file
+Windows executable are also available for non-technical users.
 
 ---
 
@@ -293,9 +299,18 @@ No API key should be required for the core local workflow.
 
 ---
 
-# Basic Usage
+# Usage
 
-The simplest workflow should look like:
+## Desktop GUI (no command line needed)
+
+```bash
+python main.py --gui
+```
+
+This opens a desktop window where you can enter search parameters, run the scraper,
+watch progress live, and export results to CSV — all without touching the command line.
+
+## Command Line
 
 ```bash
 python main.py \
@@ -860,6 +875,27 @@ Reproducibility
 
 ## Phase 6 — User Interface
 
+### Desktop GUI (implemented)
+
+A customtkinter-based desktop GUI is available now:
+
+```bash
+python main.py --gui
+```
+
+The GUI provides keyword/location/limit inputs, a run/stop button, a progress bar,
+live status updates, and a CSV export button. All existing scraping and database
+logic is reused as-is.
+
+A single-file Windows executable can be built with:
+
+```bash
+python -m PyInstaller build.spec
+# Output: dist/LeadEngine.exe
+```
+
+### Web UI (planned)
+
 Possible architecture:
 
 ```text
@@ -870,36 +906,6 @@ FastAPI
 Python Lead Engine
   ↓
 SQLite
-```
-
-Potential UI:
-
-```text
-┌─────────────────────────────────────────────┐
-│ Local Lead Engine                           │
-├─────────────────────────────────────────────┤
-│                                             │
-│ Keyword                                     │
-│ [ dentists                              ]   │
-│                                             │
-│ Location                                    │
-│ [ Lahore                                ]   │
-│                                             │
-│ Limit                                       │
-│ [ 500                                  ]   │
-│                                             │
-│              [ Start Job ]                  │
-│                                             │
-│ Progress                                    │
-│ █████████████████░░░  84%                   │
-│                                             │
-│ Businesses found: 421                       │
-│ New businesses:   387                       │
-│ Duplicates:        34                       │
-│ Errors:             0                       │
-│                                             │
-│ [ Export CSV ]                              │
-└─────────────────────────────────────────────┘
 ```
 
 ---
@@ -1142,6 +1148,7 @@ For private/internal use, a license file is not strictly necessary, but it is re
 
 # Status
 
-**Early Development**
+**Active Development**
 
-The architecture and interfaces are expected to evolve while the scraping, persistence, enrichment, and lead-scoring layers are implemented.
+The core scraper and SQLite persistence are working. A desktop GUI and single-file
+Windows executable are available. Enrichment, lead scoring, and a web UI are planned.
