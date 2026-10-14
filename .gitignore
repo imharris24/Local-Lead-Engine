@@ -1,21 +1,27 @@
-# Local Lead Engine gitignore
-# See https://github.com/github/gitignore
-
-.venv/
+# Python
 __pycache__/
-*.pyc
-*.pyo
-*.pyd
+*.py[cod]
+*$py.class
+*.egg-info/
+dist/
+build/
 
+# Virtual environments
+.venv/
+venv/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Local Lead Engine data
+data/
 .env
 
-data/database/
-data/exports/
-data/logs/
-
-.pytest_cache/
-.pyproject.toml
-.coverage
-
-.vscode/
-.idea/
+# PyInstaller
+*.spec.bak

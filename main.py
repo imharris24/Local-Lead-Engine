@@ -134,15 +134,18 @@ def main() -> None:
         description="Local Lead Engine - Lead generation tool"
     )
     parser.add_argument(
+        "--gui",
+        action="store_true",
+        help="Launch the graphical interface instead of CLI mode",
+    )
+    parser.add_argument(
         "--keyword",
         type=str,
-        required=True,
         help="Search keyword (e.g., 'dentists')",
     )
     parser.add_argument(
         "--location",
         type=str,
-        required=True,
         help="Location/city (e.g., 'Lahore')",
     )
     parser.add_argument(
@@ -159,6 +162,16 @@ def main() -> None:
     )
 
     args = parser.parse_args()
+
+    # GUI mode — launch the desktop window and exit.
+    if args.gui:
+        from gui.app import run_gui
+        run_gui()
+        return
+
+    # CLI mode — validate required args were provided.
+    if not args.keyword or not args.location:
+        parser.error("--keyword and --location are required (or use --gui)")
 
     run_search(
         keyword=args.keyword,
