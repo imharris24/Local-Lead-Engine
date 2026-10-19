@@ -133,13 +133,11 @@ class SearchEngine:
     def _collect(self, page) -> None:
         limit = self.config.limit
         index = 0
-        stagnant = 0
-        seen: set = set()
 
         delay = float(settings.retry_delay or 1)
         page.wait_for_timeout(1000)
 
-        while self.processed < limit and stagnant < 5:
+        while self.processed < limit:
             logger.info(
                 f"Processing business {index + 1} "
                 f"(collected {self.processed}/{limit})"
@@ -159,21 +157,9 @@ class SearchEngine:
 
             if business is None:
                 self.errors += 1
-                stagnant += 1
                 continue
 
-            key = business.source_id or (
-                f"{(business.name or '').lower()}|{(business.address or '').lower()}"
-            )
-            if key in seen:
-                stagnant += 1
-                logger.info(f"Skipping duplicate: {business.name} (stagnant {stagnant}/5)")
-                page.wait_for_timeout(delay)
-                continue
-
-            seen.add(key)
-            stored = self._store(business)
-            stagnant = 0 if stored else stagnant + 1
+            self._store(business)
             page.wait_for_timeout(delay)
 
         try:
